@@ -1,0 +1,9 @@
+{
+  "name": "open-agent-provenance",
+  "version": "0.1.0",
+  "description": "Capture and export local W3C PROV lineage for Claude Code and Codex.",
+  "author": {
+    "name": "Open Agent Provenance contributors"
+  },
+  "hooks": "./hooks/claude-extra.json"
+}

@@ -1,0 +1,46 @@
+{
+  "name": "open-agent-provenance",
+  "version": "0.1.0",
+  "description": "Capture and export local W3C PROV lineage for Claude Code and Codex.",
+  "author": {
+    "name": "Open Agent Provenance contributors"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Open Agent Provenance",
+    "shortDescription": "Trace agent work with W3C PROV.",
+    "longDescription": "Local lifecycle capture, explicit artifact lineage, and PROV-JSON, PROV-N, and Turtle exports.",
+    "developerName": "Open Agent Provenance contributors",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Show the provenance of this session.",
+      "Export this session as PROV-JSON."
+    ]
+  },
+  "mcpServers": {
+    "open-agent-provenance": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--frozen",
+        "open-agent-provenance",
+        "serve"
+      ],
+      "cwd": ".",
+      "env_vars": [
+        "OPENPROVENANCE_HOME"
+      ]
+    }
+  },
+  "keywords": [
+    "provenance",
+    "w3c-prov",
+    "lineage",
+    "claude",
+    "codex"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "open-agent-provenance": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--frozen",
+        "--directory",
+        "${CLAUDE_PLUGIN_ROOT}",
+        "open-agent-provenance",
+        "serve"
+      ]
+    }
+  }
+}
