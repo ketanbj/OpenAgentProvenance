@@ -1,0 +1,63 @@
+name: Verify agent release with Lean
+description: Build the proved checker and independently check a downloaded candidate bundle.
+inputs:
+  bundle:
+    description: Downloaded bundle directory.
+    required: true
+  agent-command:
+    description: Independently configured expected agent command.
+    required: true
+  build-command:
+    description: Independently configured expected build command.
+    required: true
+  test-command:
+    description: Independently configured expected test command.
+    required: true
+  run-id:
+    description: Expected invocation identifier, from CI context rather than the bundle.
+    default: ${{ github.run_id }}:${{ github.run_attempt }}
+  base-revision:
+    description: Expected source base revision, from CI context rather than the bundle.
+    default: ${{ github.sha }}
+outputs:
+  accepted:
+    description: True only after Lean acceptance and actual artifact digest verification.
+    value: ${{ steps.verify.outputs.accepted }}
+  artifact-sha256:
+    description: SHA-256 of the accepted release file.
+    value: ${{ steps.verify.outputs.artifact-sha256 }}
+  report:
+    description: Independent policy and verification report directory.
+    value: ${{ steps.verify.outputs.report }}
+runs:
+  using: composite
+  steps:
+    - name: Build pinned Lean checker
+      shell: bash
+      env:
+        OAP_ACTION_ROOT: ${{ github.action_path }}/../..
+      run: bash "$OAP_ACTION_ROOT/scripts/setup_lean.sh"
+    - id: verify
+      shell: bash
+      env:
+        OAP_ACTION_ROOT: ${{ github.action_path }}/../..
+        OAP_BUNDLE: ${{ inputs.bundle }}
+        OAP_AGENT_COMMAND: ${{ inputs.agent-command }}
+        OAP_BUILD_COMMAND: ${{ inputs.build-command }}
+        OAP_TEST_COMMAND: ${{ inputs.test-command }}
+        OAP_RUN_ID: ${{ inputs.run-id }}
+        OAP_BASE_REVISION: ${{ inputs.base-revision }}
+      run: |
+        export PYTHONPATH="$OAP_ACTION_ROOT/plugins/open-agent-provenance${PYTHONPATH:+:$PYTHONPATH}"
+        task_dir="$(mktemp -d "$RUNNER_TEMP/oap-verify.XXXXXXXX")"
+        python3 -B -m oap.ci verify \
+          --bundle "$OAP_BUNDLE" --checker "$OAP_ACTION_ROOT/formal/.lake/build/bin/provenance-checker" \
+          --report "$task_dir/report" --run-id "$OAP_RUN_ID" --base-revision "$OAP_BASE_REVISION"
+        python3 - "$task_dir/report/verification.json" "$GITHUB_OUTPUT" <<'PY'
+        import json, sys
+        from pathlib import Path
+        report = Path(sys.argv[1])
+        verdict = json.loads(report.read_text())
+        with open(sys.argv[2], 'a') as output:
+            output.write(f"accepted=true\nartifact-sha256={verdict['artifactDigest']}\nreport={report.parent}\n")
+        PY

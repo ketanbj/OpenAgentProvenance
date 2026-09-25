@@ -5,6 +5,13 @@ A local plugin for **Claude Code and Codex** that records agent activity using t
 [OpenProvenance](https://openprovenance.org/). Version 0.1.0 is a working local
 implementation, with automatic lifecycle capture and explicit artifact lineage.
 
+The repository also includes an **agent CI/CD pipeline with a Lean release gate**:
+run an agent with these hooks, build and test an artifact, check its provenance
+certificate in a separate job, and publish only the verified artifact. See
+[Agent CI/CD](docs/agent-ci.md) for the runnable workflow, reusable actions,
+formal guarantees, and trust assumptions. The default workflow uses a deterministic
+host simulator; a real Claude/Codex command is configurable.
+
 ## What it does
 
 - Captures session, prompt, tool, response, and subagent lifecycle events exposed
@@ -170,6 +177,10 @@ independent transformations. URI/digest annotations do not read or fetch files.
 - `verify` checks the journal, **not the full W3C PROV Constraints specification**.
   Tests check library interoperability and graph relationships; they are not
   standards certification. No public validation service receives your data.
+- The separate Lean CI checker implements `agent-release-v1`, a release evidence
+  policy, not full PROV Constraints. It checks test/source/artifact bindings and
+  recorded tool-call completion. Its guarantee assumes faithful CI observations;
+  it does not authenticate hooks or prove that the agent disclosed every input.
 
 ## Development
 

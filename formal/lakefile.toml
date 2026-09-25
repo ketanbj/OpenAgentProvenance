@@ -1,0 +1,10 @@
+name = "provenance"
+version = "0.1.0"
+defaultTargets = ["provenance-checker"]
+
+[[lean_lib]]
+name = "Provenance"
+
+[[lean_exe]]
+name = "provenance-checker"
+root = "Main"

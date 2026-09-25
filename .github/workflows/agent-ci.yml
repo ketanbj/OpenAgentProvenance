@@ -1,0 +1,108 @@
+name: Agent CI and formal release gate
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      agent-command:
+        description: Installed agent host command with provenance hooks enabled (default is a simulator).
+        default: 'python3 "$OAP_ACTION_ROOT/examples/ci_agent.py"'
+        required: true
+      build-command:
+        description: Build one release file at OAP_ARTIFACT.
+        default: 'python3 "$OAP_ACTION_ROOT/examples/ci_build.py"'
+        required: true
+      test-command:
+        description: Test source and the release file at OAP_ARTIFACT.
+        default: 'python3 "$OAP_ACTION_ROOT/examples/ci_test.py"'
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  OAP_AGENT_COMMAND: ${{ inputs.agent-command || 'python3 "$OAP_ACTION_ROOT/examples/ci_agent.py"' }}
+  OAP_BUILD_COMMAND: ${{ inputs.build-command || 'python3 "$OAP_ACTION_ROOT/examples/ci_build.py"' }}
+  OAP_TEST_COMMAND: ${{ inputs.test-command || 'python3 "$OAP_ACTION_ROOT/examples/ci_test.py"' }}
+
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: ./actions/run
+        id: run
+        with:
+          agent-command: ${{ env.OAP_AGENT_COMMAND }}
+          build-command: ${{ env.OAP_BUILD_COMMAND }}
+          test-command: ${{ env.OAP_TEST_COMMAND }}
+          timeout-seconds: '600'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: candidate-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ steps.run.outputs.bundle }}
+          if-no-files-found: error
+          retention-days: 7
+
+  verify:
+    needs: agent
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      accepted: ${{ steps.gate.outputs.accepted }}
+      artifact-sha256: ${{ steps.gate.outputs.artifact-sha256 }}
+    steps:
+      # Fresh checkout: never run a checker or policy supplied in the candidate.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: candidate-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/candidate
+      - uses: ./actions/verify
+        id: gate
+        with:
+          bundle: ${{ runner.temp }}/candidate
+          agent-command: ${{ env.OAP_AGENT_COMMAND }}
+          build-command: ${{ env.OAP_BUILD_COMMAND }}
+          test-command: ${{ env.OAP_TEST_COMMAND }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: verification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ steps.gate.outputs.report }}
+          if-no-files-found: error
+
+  publish:
+    needs: verify
+    if: needs.verify.outputs.accepted == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: candidate-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release
+      - name: Bind published bytes to the independent verification result
+        env:
+          EXPECTED_DIGEST: ${{ needs.verify.outputs.artifact-sha256 }}
+        run: |
+          python3 - <<'PY'
+          import hashlib, os
+          from pathlib import Path
+          actual = hashlib.sha256(Path('release/artifact').read_bytes()).hexdigest()
+          if actual != os.environ['EXPECTED_DIGEST']:
+              raise SystemExit('Release artifact differs from verified bytes')
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: verified-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            release/artifact
+            release/certificate.json
+            release/hook-journal.json
+          if-no-files-found: error

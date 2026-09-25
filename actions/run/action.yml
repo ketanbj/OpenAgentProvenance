@@ -1,0 +1,50 @@
+name: Run agent with provenance
+description: Run an agent, build, and tests; export a candidate provenance bundle.
+inputs:
+  agent-command:
+    description: Shell command that launches a host with the provenance hooks enabled.
+    required: true
+  build-command:
+    description: Shell command that writes one release file to OAP_ARTIFACT.
+    required: true
+  test-command:
+    description: Shell command that tests the source and the file at OAP_ARTIFACT.
+    required: true
+  workspace:
+    description: Git checkout to operate on.
+    default: ${{ github.workspace }}
+  run-id:
+    description: Unique invocation identifier shared with the independent verifier.
+    default: ${{ github.run_id }}:${{ github.run_attempt }}
+  base-revision:
+    description: Expected checked-out HEAD.
+    default: ${{ github.sha }}
+  timeout-seconds:
+    description: Maximum duration of each command.
+    default: '1800'
+outputs:
+  bundle:
+    description: Candidate bundle directory; not yet accepted for deployment.
+    value: ${{ steps.collect.outputs.bundle }}
+runs:
+  using: composite
+  steps:
+    - id: collect
+      shell: bash
+      env:
+        OAP_ACTION_ROOT: ${{ github.action_path }}/../..
+        OAP_AGENT_COMMAND: ${{ inputs.agent-command }}
+        OAP_BUILD_COMMAND: ${{ inputs.build-command }}
+        OAP_TEST_COMMAND: ${{ inputs.test-command }}
+        OAP_WORKSPACE: ${{ inputs.workspace }}
+        OAP_RUN_ID: ${{ inputs.run-id }}
+        OAP_BASE_REVISION: ${{ inputs.base-revision }}
+        OAP_TIMEOUT: ${{ inputs.timeout-seconds }}
+      run: |
+        export PYTHONPATH="$OAP_ACTION_ROOT/plugins/open-agent-provenance${PYTHONPATH:+:$PYTHONPATH}"
+        task_dir="$(mktemp -d "$RUNNER_TEMP/oap-run.XXXXXXXX")"
+        python3 -B -m oap.ci run \
+          --workspace "$OAP_WORKSPACE" --output "$task_dir/bundle" \
+          --artifact "$task_dir/build/artifact" --run-id "$OAP_RUN_ID" \
+          --base-revision "$OAP_BASE_REVISION" --timeout "$OAP_TIMEOUT"
+        printf 'bundle=%s\n' "$task_dir/bundle" >> "$GITHUB_OUTPUT"
