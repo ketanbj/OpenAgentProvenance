@@ -10,7 +10,7 @@ version = json.loads((plugin / ".codex-plugin/plugin.json").read_text())["versio
 destination = root / "dist" / f"open-agent-provenance-{version}.zip"
 destination.parent.mkdir(exist_ok=True)
 directories = {".codex-plugin", ".claude-plugin", "hooks", "oap", "scripts", "skills"}
-files = {".mcp.json", "pyproject.toml", "uv.lock"}
+files = {".mcp.json", "LICENSE", "pyproject.toml", "uv.lock"}
 with ZipFile(destination, "w", ZIP_DEFLATED) as archive:
     for path in sorted(plugin.rglob("*")):
         relative = path.relative_to(plugin)

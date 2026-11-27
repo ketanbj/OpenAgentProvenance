@@ -255,10 +255,6 @@ independent transformations. URI/digest annotations do not read or fetch files.
 
 ## Development
 
-This repository is a publicly available research prototype. An explicit software
-license has not yet been added; licensing for a reusable public distribution is
-pending.
-
 The entire installable runtime lives in `plugins/open-agent-provenance`; it has no
 relative dependencies outside that folder. Hooks use Python's standard library;
 the MCP server uses the official SDK. Dependencies are pinned in `uv.lock`.
@@ -286,3 +282,9 @@ References: [Claude plugins](https://code.claude.com/docs/en/plugins-reference),
 [Codex hooks](https://learn.chatgpt.com/docs/hooks),
 [PROV-JSON](https://www.w3.org/submissions/prov-json/),
 [PROV-O](https://www.w3.org/TR/prov-o/).
+
+## License
+
+Licensed under the [MIT License](LICENSE).
+
+Copyright (c) 2026 Ketan Bhardwaj.
