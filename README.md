@@ -1,18 +1,28 @@
 # Open Agent Provenance
 
-A local plugin for **Claude Code and Codex** that records agent activity using the
+Provenance for AI-assisted research and scientific software.
+
+AI coding assistants can change a scientific workflow, generate a solver, or revise
+an analysis in minutes. Researchers still need to know which tools ran, which
+artifacts were used, and whether the delivered software is the version that was
+tested. Open Agent Provenance provides a local foundation for recording that
+evidence and checking release policies.
+
+Version 0.1.0 is a working local plugin for **Claude Code and Codex**. It records
+host-exposed agent activity using the
 [W3C PROV family](https://www.w3.org/TR/prov-overview/) linked from
-[OpenProvenance](https://openprovenance.org/). Version 0.1.0 is a working local
-implementation, with automatic lifecycle capture and explicit artifact lineage.
+[OpenProvenance](https://openprovenance.org/), supports explicit artifact lineage,
+and includes an **agent CI/CD pipeline with a Lean release gate**. Scientific
+workflow integration and scientific correctness validation are the next research
+directions; they are not implemented capabilities of this release.
 
-The repository also includes an **agent CI/CD pipeline with a Lean release gate**:
-run an agent with these hooks, build and test an artifact, check its provenance
-certificate in a separate job, and publish only the verified artifact. See
-[Agent CI/CD](docs/agent-ci.md) for the runnable workflow, reusable actions,
-formal guarantees, and trust assumptions. The default workflow uses a deterministic
-host simulator; a real Claude/Codex command is configurable.
+Start with the [implemented foundation](#implemented-foundation) and
+[current scope](#current-scope-and-research-directions), then follow the
+[quick start](#quick-start). The [provenance model](#provenance-model),
+[privacy and integrity limits](#privacy-integrity-and-coverage), and
+[Agent CI/CD guide](docs/agent-ci.md) describe how to interpret the evidence.
 
-## What it does
+## Implemented foundation
 
 - Captures session, prompt, tool, response, and subagent lifecycle events exposed
   by each host's hooks. Captures Claude's `PostToolUseFailure` separately.
@@ -28,6 +38,67 @@ host simulator; a real Claude/Codex command is configurable.
 There is no hosted backend or telemetry. The plugin does not contact
 openprovenance.org or upload records to its services. Installation can download
 Python dependencies through `uv`; capture itself uses only the standard library.
+
+## Current scope and research directions
+
+The current software records agent activity and checks the consistency of release
+evidence. It does not establish that a scientific result is correct. The following
+distinction guides development:
+
+| Area | Implemented in v0.1.0 | Proposed extension |
+| --- | --- | --- |
+| Agent observation | Local Claude Code/Codex hook capture; payload fingerprints; explicit source and activity annotations | Scientific tool wrappers that measure actual artifact bytes and capture datasets, environments, random seeds, and device configuration |
+| Artifact lineage | Session-local PROV graphs, with observed events distinguished from asserted derivations | Composition across workflow stages, sessions, and remote execution resources |
+| Release validation | Source/artifact digest bindings, stage exit codes, recorded call completion, and a Lean policy checker | Independent numerical reference tests, physical invariants, convergence checks, and metamorphic tests bound to the released scientific software |
+| Execution portability | A local Python plugin and POSIX CI actions | Reusable CPU/GPU/TPU scientific workflow packages and integration with workflow systems such as Airavata and Cybershuttle |
+| Evaluation | Infrastructure tests and a deterministic CI host simulator | Real-agent studies, scientific benchmarks, cross-backend reproducibility, and validation-cost measurements |
+
+### Portable, traceable scientific workflows
+
+A scientific assistant should leave a usable record connecting an experiment's
+inputs, model configuration, computation, and outputs. One research direction is
+to extend this prototype with explicit scientific execution wrappers, reusable
+workflow packages, and exportable evidence bundles. For example, a surrogate-model
+experiment could bind a dataset version, preprocessing configuration, training
+seed, model checkpoint, execution environment, and validation report.
+
+Those wrappers would add evidence that the current host hooks do not observe.
+Recording device and numerical settings would also make differences between CPU,
+GPU, and TPU runs inspectable. Numerical agreement would need application-specific
+tolerances; an identical workflow specification would not imply bitwise-identical
+results. Airavata/Cybershuttle integration and accelerator support remain planned
+work, with no current portability or performance claim.
+
+### Scientific validation of AI-generated software
+
+A separate research direction is to connect the existing release gate to tests
+that address scientific meaning. A generated numerical kernel may pass ordinary
+unit tests yet violate a conservation law, lose the expected convergence rate,
+or fail outside the examples used during development. Candidate extensions
+include independently maintained reference problems, metamorphic relations,
+precision-aware comparisons, and regression selection informed by explicit
+artifact lineage.
+
+The intended role of provenance is to bind each validation result to the code,
+test policy, environment, and artifact it actually evaluated. Scientific test
+adequacy remains an empirical and domain-specific question. Extending the Lean
+policy could check that required evidence is present and correctly bound; it
+would not by itself prove a solver or scientific hypothesis correct.
+
+### Interpreting the existing release gate
+
+The repository already includes reusable run/verify actions and a separate
+verification job. The supplied workflow runs an agent through the hooks, builds
+and tests a release file, checks its certificate, and publishes only the verified
+artifact. Its default agent is a **deterministic host simulator**, not an LLM.
+A real Claude/Codex command is configurable; no comparative real-agent or
+scientific benchmark result is reported.
+
+The Lean checker establishes that acceptance matches the defined
+`agent-release-v1` evidence policy. It does not authenticate the hook observations
+or certify scientific correctness, test sufficiency, or full W3C PROV Constraints
+compliance. See [Agent CI/CD](docs/agent-ci.md) for the runnable workflow, exact
+formal guarantees, and trust assumptions.
 
 ## Quick start
 
@@ -183,6 +254,10 @@ independent transformations. URI/digest annotations do not read or fetch files.
   it does not authenticate hooks or prove that the agent disclosed every input.
 
 ## Development
+
+This repository is a publicly available research prototype. An explicit software
+license has not yet been added; licensing for a reusable public distribution is
+pending.
 
 The entire installable runtime lives in `plugins/open-agent-provenance`; it has no
 relative dependencies outside that folder. Hooks use Python's standard library;
