@@ -21,6 +21,7 @@ Start with the [implemented foundation](#implemented-foundation) and
 [quick start](#quick-start). The [provenance model](#provenance-model),
 [privacy and integrity limits](#privacy-integrity-and-coverage), and
 [Agent CI/CD guide](docs/agent-ci.md) describe how to interpret the evidence.
+
 ## Implemented foundation
 
 - Captures session, prompt, tool, response, and subagent lifecycle events exposed
@@ -98,6 +99,7 @@ The Lean checker establishes that acceptance matches the defined
 or certify scientific correctness, test sufficiency, or full W3C PROV Constraints
 compliance. See [Agent CI/CD](docs/agent-ci.md) for the runnable workflow, exact
 formal guarantees, and trust assumptions.
+
 ## Quick start
 
 Requirements: Python 3.11+, [uv](https://docs.astral.sh/uv/), and a host version
